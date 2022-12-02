@@ -1,7 +1,6 @@
 package glsymbol
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -44,7 +43,7 @@ func Test(t *testing.T) {
 
 	// Load the same font at different scale factors and directions.
 	for i := range fonts {
-		for iter := 0; iter < 100; iter++ {
+		for iter := 0; iter < 1; iter++ {
 			fonts[i] = new(Font)
 			// loadFont loads the specified font at the given scale.
 			if fonts[i], err = func(scale int32) (*Font, error) {

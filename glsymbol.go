@@ -29,8 +29,8 @@ import (
 	"unsafe"
 
 	"github.com/go-gl/gl/v2.1/gl"
-	"github.com/goki/freetype"
-	"github.com/goki/freetype/truetype"
+	"github.com/golang/freetype"
+	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/math/fixed"
 )
 
@@ -105,9 +105,6 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	// Individual glyph-quads display a subset of this texture.
 	gl.GenTextures(1, &f.Texture)
 	gl.BindTexture(gl.TEXTURE_2D, f.Texture)
-	if f.Texture == 0 {
-		return
-	}
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(ib.Dx()), int32(ib.Dy()), 0,
