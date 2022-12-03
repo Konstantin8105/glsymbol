@@ -277,6 +277,58 @@ func (f *Font) Printf(x, y float32, r rune) error {
 		}
 		gl.PopMatrix()
 		gl.BindTexture(gl.TEXTURE_2D, 0)
+
+		{
+			var swbytes, lsbfirst, rowlen, skiprows, skippix, align int32
+
+			gl.GetIntegerv(gl.UNPACK_SWAP_BYTES, &swbytes)
+			gl.GetIntegerv(gl.UNPACK_LSB_FIRST, &lsbfirst)
+			gl.GetIntegerv(gl.UNPACK_ROW_LENGTH, &rowlen)
+			gl.GetIntegerv(gl.UNPACK_SKIP_ROWS, &skiprows)
+			gl.GetIntegerv(gl.UNPACK_SKIP_PIXELS, &skippix)
+			gl.GetIntegerv(gl.UNPACK_ALIGNMENT, &align)
+			gl.PixelStorei(gl.UNPACK_SWAP_BYTES, gl.FALSE)
+			gl.PixelStorei(gl.UNPACK_LSB_FIRST, gl.FALSE)
+			gl.PixelStorei(gl.UNPACK_ROW_LENGTH, 0)
+			gl.PixelStorei(gl.UNPACK_SKIP_ROWS, 0)
+			gl.PixelStorei(gl.UNPACK_SKIP_PIXELS, 0)
+			gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+
+			// gl.Bitmap(
+			//     face[ 0 ], font->Height,      /* The bitmap's width and height  */
+			//     font->xorig, font->yorig,     /* The origin in the font glyph   */
+			//     ( float )( face[ 0 ] ), 0.0,  /* The raster advance -- inc. x,y */
+			//     ( face + 1 )                  /* The packed bitmap data...      */
+			// );
+
+			bits := [...]uint8{
+				0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00,
+				0xff, 0x00, 0xff, 0x00, 0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00,
+				0xff, 0xc0, 0xff, 0xc0}
+
+			gl.Color3f(1, 0, 0)
+
+			gl.RasterPos2i(int32(x), int32(y))
+			gl.Bitmap(
+				10, 12, /* The bitmap's width and height  */
+				0, 0, /* The origin in the font glyph   */
+				0, 0, /* The raster advance -- inc. x,y */
+				(*uint8)(gl.Ptr(&bits[0])), /* The packed bitmap data...      */
+			)
+
+			gl.Begin(gl.POINTS)
+			gl.Color3f(0, 1, 1)
+			gl.Vertex2i(int32(x), int32(y+10))
+			gl.End()
+
+			gl.PixelStorei(gl.UNPACK_SWAP_BYTES, swbytes)
+			gl.PixelStorei(gl.UNPACK_LSB_FIRST, lsbfirst)
+			gl.PixelStorei(gl.UNPACK_ROW_LENGTH, rowlen)
+			gl.PixelStorei(gl.UNPACK_SKIP_ROWS, skiprows)
+			gl.PixelStorei(gl.UNPACK_SKIP_PIXELS, skippix)
+			gl.PixelStorei(gl.UNPACK_ALIGNMENT, align)
+		}
+
 	}
 	gl.PopAttrib()
 

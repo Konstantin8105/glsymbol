@@ -89,7 +89,7 @@ func Test(t *testing.T) {
 		gl.Clear(gl.COLOR_BUFFER_BIT)
 
 		// drawString draws the same string for each loaded font.
-		err = func(x, y float32, str string) error {
+		if err = func(x, y float32, str string) error {
 			for i := range fonts {
 				if fonts[i] == nil {
 					continue
@@ -113,11 +113,10 @@ func Test(t *testing.T) {
 				}
 			}
 			return nil
-		}(10, 10, string(SampleString))
-
-		if err != nil {
+		}(10, 10, string(SampleString)); err != nil {
 			t.Fatal(err)
 		}
+
 		window.MakeContextCurrent()
 		window.SwapBuffers()
 
