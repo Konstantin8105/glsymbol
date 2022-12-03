@@ -320,7 +320,7 @@ func (f *Font) Printf(x, y float32, str string) error {
 	gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
 		{
-			gl.Color3f(0.5, 1, 0)
+			// gl.Color3f(0.5, 1, 0)
 			gl.RasterPos2i(int32(x), int32(2*x+y+20))
 			gl.ListBase(fontOffset)
 			var s []uint8
