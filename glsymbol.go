@@ -98,75 +98,145 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	f.Config = config
 
 	// Resize image to next power-of-two.
-	img = Pow2Image(img).(*image.RGBA)
-	ib := img.Bounds()
+	// 	img = Pow2Image(img).(*image.RGBA)
+	//
+	// 	r := img.Bounds()
+	// 	m := r.Max
+	// 	fmt.Println(r.Min, r.Max)
+	// 	counter := 0
+	// 	zero := 0
+	// 	for x := 0; x < m.X; x++ {
+	// 		for y := 0; y < m.Y; y++ {
+	// 			c := img.At(x, y)
+	// 			if r, g, b, a := c.RGBA(); r == 0 && g == 0 && b == 0 && a == 0 {
+	// 				zero++
+	// 				continue
+	// 			}
+	// 			counter++
+	// 		}
+	// 	}
+	// 	fmt.Println(">>>", counter, zero)
 
-	// Create the texture itself. It will contain all glyphs.
-	// Individual glyph-quads display a subset of this texture.
-	gl.GenTextures(1, &f.Texture)
-	gl.BindTexture(gl.TEXTURE_2D, f.Texture)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(ib.Dx()), int32(ib.Dy()), 0,
-		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(img.Pix))
+	// 	ib := img.Bounds()
 
-	// Unavailable in OpenGL 2.1,
-	// use gluBuild2DMipmaps() instead
-	gl.GenerateMipmap(gl.TEXTURE_2D)
-	gl.BindTexture(gl.TEXTURE_2D, 0)
+	// 	// Create the texture itself. It will contain all glyphs.
+	// 	// Individual glyph-quads display a subset of this texture.
+	// 	gl.GenTextures(1, &f.Texture)
+	// 	gl.BindTexture(gl.TEXTURE_2D, f.Texture)
+	// 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+	// 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+	// 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(ib.Dx()), int32(ib.Dy()), 0,
+	// 		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(img.Pix))
+	//
+	// 	// Unavailable in OpenGL 2.1,
+	// 	// use gluBuild2DMipmaps() instead
+	// 	gl.GenerateMipmap(gl.TEXTURE_2D)
+	// 	gl.BindTexture(gl.TEXTURE_2D, 0)
+	//
+	// 	//  Create display lists for each glyph.
+	// 	f.Listbase = gl.GenLists(int32(len(config.Glyphs)))
+	//
+	// 	texWidth := float32(ib.Dx())
+	// 	texHeight := float32(ib.Dy())
+	//
+	// 	var widthG, heightG int32
+	//
+	// 	for index, glyph := range config.Glyphs {
+	// 		// Update max glyph bounds.
+	// 		if glyph.Width > f.MaxGlyphWidth {
+	// 			f.MaxGlyphWidth = glyph.Width
+	// 		}
+	//
+	// 		if glyph.Height > f.MaxGlyphHeight {
+	// 			f.MaxGlyphHeight = glyph.Height
+	// 		}
+	//
+	// 		// Quad width/height
+	// 		vw := float32(glyph.Width)
+	// 		vh := float32(glyph.Height)
+	//
+	// 		// Texture coordinate offsets.
+	// 		tx1 := float32(glyph.X) / texWidth
+	// 		ty1 := float32(glyph.Y) / texHeight
+	// 		tx2 := (float32(glyph.X) + vw) / texWidth
+	// 		ty2 := (float32(glyph.Y) + vh) / texHeight
+	//
+	// 		// Advance width (or height if we render top-to-bottom)
+	// 		adv := float32(glyph.Advance)
+	//
+	// 		fmt.Println(":", index, glyph, tx1, ty1, tx2, ty2)
+	// 		widthG = int32(glyph.Width)
+	// 		heightG = int32(glyph.Height
+	// 		_ = adv
+	//
+	// 		// gl.NewList(f.Listbase+uint32(index), gl.COMPILE)
+	// 		// {
+	// 		// 	gl.Begin(gl.QUADS)
+	// 		// 	{
+	// 		// 		gl.TexCoord2f(tx1, ty2)
+	// 		// 		gl.Vertex2f(0, 0)
+	// 		// 		gl.TexCoord2f(tx2, ty2)
+	// 		// 		gl.Vertex2f(vw, 0)
+	// 		// 		gl.TexCoord2f(tx2, ty1)
+	// 		// 		gl.Vertex2f(vw, vh)
+	// 		// 		gl.TexCoord2f(tx1, ty1)
+	// 		// 		gl.Vertex2f(0, vh)
+	// 		// 	}
+	// 		// 	gl.End()
+	// 		// 	// LeftToRight
+	// 		// 	gl.Translatef(adv, 0, 0)
+	// 		// }
+	// 		// gl.EndList()
+	// 	}
 
-	// Create display lists for each glyph.
-	f.Listbase = gl.GenLists(int32(len(config.Glyphs)))
-
-	texWidth := float32(ib.Dx())
-	texHeight := float32(ib.Dy())
-
-	for index, glyph := range config.Glyphs {
-		// Update max glyph bounds.
-		if glyph.Width > f.MaxGlyphWidth {
-			f.MaxGlyphWidth = glyph.Width
-		}
-
-		if glyph.Height > f.MaxGlyphHeight {
-			f.MaxGlyphHeight = glyph.Height
-		}
-
-		// Quad width/height
-		vw := float32(glyph.Width)
-		vh := float32(glyph.Height)
-
-		// Texture coordinate offsets.
-		tx1 := float32(glyph.X) / texWidth
-		ty1 := float32(glyph.Y) / texHeight
-		tx2 := (float32(glyph.X) + vw) / texWidth
-		ty2 := (float32(glyph.Y) + vh) / texHeight
-
-		// Advance width (or height if we render top-to-bottom)
-		adv := float32(glyph.Advance)
-
-		gl.NewList(f.Listbase+uint32(index), gl.COMPILE)
-		{
-			gl.Begin(gl.QUADS)
-			{
-				gl.TexCoord2f(tx1, ty2)
-				gl.Vertex2f(0, 0)
-				gl.TexCoord2f(tx2, ty2)
-				gl.Vertex2f(vw, 0)
-				gl.TexCoord2f(tx2, ty1)
-				gl.Vertex2f(vw, vh)
-				gl.TexCoord2f(tx1, ty1)
-				gl.Vertex2f(0, vh)
-			}
-			gl.End()
-
-			// LeftToRight
-			gl.Translatef(adv, 0, 0)
-		}
+	// 	once.Do(func() {
+	gl.ShadeModel(gl.FLAT)
+	// GLuint i, j;
+	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+	fontOffset = gl.GenLists(128)
+	for i, j := 0, uint32(65); i < 26; i, j = i+1, j+1 { // uint32('A')
+		gl.NewList(uint32(fontOffset+j), gl.COMPILE)
+		gl.Bitmap(8, 13, 0.0, 2.0, 10.0, 0.0, (*uint8)(gl.Ptr(&letters[i][0])))
 		gl.EndList()
 	}
+	// 	})
 
 	err = checkGLError()
 	return
+}
+
+// var once sync.Once
+
+var fontOffset uint32
+
+// var space = []uint8{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+var letters = [200][]uint8{
+	{0x00, 0x00, 0xc3, 0xc3, 0xc3, 0xc3, 0xff, 0xc3, 0xc3, 0xc3, 0x66, 0x3c, 0x18},
+	{0x00, 0x00, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe},
+	{0x00, 0x00, 0x7e, 0xe7, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xe7, 0x7e},
+	{0x00, 0x00, 0xfc, 0xce, 0xc7, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc7, 0xce, 0xfc},
+	{0x00, 0x00, 0xff, 0xc0, 0xc0, 0xc0, 0xc0, 0xfc, 0xc0, 0xc0, 0xc0, 0xc0, 0xff},
+	{0x00, 0x00, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xfc, 0xc0, 0xc0, 0xc0, 0xff},
+	{0x00, 0x00, 0x7e, 0xe7, 0xc3, 0xc3, 0xcf, 0xc0, 0xc0, 0xc0, 0xc0, 0xe7, 0x7e},
+	{0x00, 0x00, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xff, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
+	{0x00, 0x00, 0x7e, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x7e},
+	{0x00, 0x00, 0x7c, 0xee, 0xc6, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06},
+	{0x00, 0x00, 0xc3, 0xc6, 0xcc, 0xd8, 0xf0, 0xe0, 0xf0, 0xd8, 0xcc, 0xc6, 0xc3},
+	{0x00, 0x00, 0xff, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0},
+	{0x00, 0x00, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xdb, 0xff, 0xff, 0xe7, 0xc3},
+	{0x00, 0x00, 0xc7, 0xc7, 0xcf, 0xcf, 0xdf, 0xdb, 0xfb, 0xf3, 0xf3, 0xe3, 0xe3},
+	{0x00, 0x00, 0x7e, 0xe7, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xe7, 0x7e},
+	{0x00, 0x00, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe},
+	{0x00, 0x00, 0x3f, 0x6e, 0xdf, 0xdb, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0x66, 0x3c},
+	{0x00, 0x00, 0xc3, 0xc6, 0xcc, 0xd8, 0xf0, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe},
+	{0x00, 0x00, 0x7e, 0xe7, 0x03, 0x03, 0x07, 0x7e, 0xe0, 0xc0, 0xc0, 0xe7, 0x7e},
+	{0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0xff},
+	{0x00, 0x00, 0x7e, 0xe7, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
+	{0x00, 0x00, 0x18, 0x3c, 0x3c, 0x66, 0x66, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
+	{0x00, 0x00, 0xc3, 0xe7, 0xff, 0xff, 0xdb, 0xdb, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
+	{0x00, 0x00, 0xc3, 0x66, 0x66, 0x3c, 0x3c, 0x18, 0x3c, 0x3c, 0x66, 0x66, 0xc3},
+	{0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x3c, 0x66, 0x66, 0xc3},
+	{0x00, 0x00, 0xff, 0xc0, 0xc0, 0x60, 0x30, 0x7e, 0x0c, 0x06, 0x03, 0x03, 0xff},
 }
 
 // Release releases font resources.
@@ -223,19 +293,19 @@ func (f *Font) advanceSize(line string) int {
 // In order to render multi-line text, it is up to the caller to split
 // the text up into individual lines of adequate length and then call
 // this method for each line seperately.
-func (f *Font) Printf(x, y float32, r rune) error {
-	indices := []rune{r}
-
-	if len(indices) == 0 {
-		return nil
-	}
-
-	// Runes form display list indices.
-	// For this purpose, they need to be offset by -FontConfig.Low
-	low := f.Config.Low
-	for i := range indices {
-		indices[i] -= low
-	}
+func (f *Font) Printf(x, y float32, str string) error {
+	// 	indices := []rune(str)
+	//
+	// 	if len(indices) == 0 {
+	// 		return nil
+	// 	}
+	//
+	// 	// Runes form display list indices.
+	// 	// For this purpose, they need to be offset by -FontConfig.Low
+	// 	low := f.Config.Low
+	// 	for i := range indices {
+	// 		indices[i] -= low
+	// 	}
 
 	var vp [4]int32
 	gl.GetIntegerv(gl.VIEWPORT, &vp[0])
@@ -249,86 +319,17 @@ func (f *Font) Printf(x, y float32, r rune) error {
 
 	gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
-		gl.MatrixMode(gl.MODELVIEW)
-		gl.Disable(gl.LIGHTING)
-		gl.Disable(gl.DEPTH_TEST)
-		gl.Enable(gl.BLEND)
-		gl.Enable(gl.TEXTURE_2D)
-
-		gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
-		gl.TexEnvf(gl.TEXTURE_ENV, gl.TEXTURE_ENV_MODE, gl.MODULATE)
-		gl.BindTexture(gl.TEXTURE_2D, f.Texture)
-		gl.ListBase(f.Listbase)
-
-		var mv [16]float32
-		gl.GetFloatv(gl.MODELVIEW_MATRIX, &mv[0])
-
-		gl.PushMatrix()
 		{
-			gl.LoadIdentity()
-
-			mgh := float32(f.MaxGlyphHeight)
-
-			// LeftToRight
-			gl.Translatef(x, float32(vp[3])-y-mgh, 0)
-
-			gl.MultMatrixf(&mv[0])
-			gl.CallLists(int32(len(indices)), gl.UNSIGNED_INT, unsafe.Pointer(&indices[0]))
+			gl.Color3f(0.5, 1, 0)
+			gl.RasterPos2i(int32(x), int32(2*x+y+20))
+			gl.ListBase(fontOffset)
+			var s []uint8
+			for _, b := range str { // indices {
+				s = append(s, uint8(b))
+				// fmt.Println(	s, string( b))
+			}
+			gl.CallLists(int32(len(s)), gl.UNSIGNED_BYTE, unsafe.Pointer(gl.Ptr(s))) // (GLubyte *) s);
 		}
-		gl.PopMatrix()
-		gl.BindTexture(gl.TEXTURE_2D, 0)
-
-		{
-			var swbytes, lsbfirst, rowlen, skiprows, skippix, align int32
-
-			gl.GetIntegerv(gl.UNPACK_SWAP_BYTES, &swbytes)
-			gl.GetIntegerv(gl.UNPACK_LSB_FIRST, &lsbfirst)
-			gl.GetIntegerv(gl.UNPACK_ROW_LENGTH, &rowlen)
-			gl.GetIntegerv(gl.UNPACK_SKIP_ROWS, &skiprows)
-			gl.GetIntegerv(gl.UNPACK_SKIP_PIXELS, &skippix)
-			gl.GetIntegerv(gl.UNPACK_ALIGNMENT, &align)
-			gl.PixelStorei(gl.UNPACK_SWAP_BYTES, gl.FALSE)
-			gl.PixelStorei(gl.UNPACK_LSB_FIRST, gl.FALSE)
-			gl.PixelStorei(gl.UNPACK_ROW_LENGTH, 0)
-			gl.PixelStorei(gl.UNPACK_SKIP_ROWS, 0)
-			gl.PixelStorei(gl.UNPACK_SKIP_PIXELS, 0)
-			gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-
-			// gl.Bitmap(
-			//     face[ 0 ], font->Height,      /* The bitmap's width and height  */
-			//     font->xorig, font->yorig,     /* The origin in the font glyph   */
-			//     ( float )( face[ 0 ] ), 0.0,  /* The raster advance -- inc. x,y */
-			//     ( face + 1 )                  /* The packed bitmap data...      */
-			// );
-
-			bits := [...]uint8{
-				0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00,
-				0xff, 0x00, 0xff, 0x00, 0xc0, 0x00, 0xc0, 0x00, 0xc0, 0x00,
-				0xff, 0xc0, 0xff, 0xc0}
-
-			gl.Color3f(1, 0, 0)
-
-			gl.RasterPos2i(int32(x), int32(y))
-			gl.Bitmap(
-				10, 12, /* The bitmap's width and height  */
-				0, 0, /* The origin in the font glyph   */
-				0, 0, /* The raster advance -- inc. x,y */
-				(*uint8)(gl.Ptr(&bits[0])), /* The packed bitmap data...      */
-			)
-
-			gl.Begin(gl.POINTS)
-			gl.Color3f(0, 1, 1)
-			gl.Vertex2i(int32(x), int32(y+10))
-			gl.End()
-
-			gl.PixelStorei(gl.UNPACK_SWAP_BYTES, swbytes)
-			gl.PixelStorei(gl.UNPACK_LSB_FIRST, lsbfirst)
-			gl.PixelStorei(gl.UNPACK_ROW_LENGTH, rowlen)
-			gl.PixelStorei(gl.UNPACK_SKIP_ROWS, skiprows)
-			gl.PixelStorei(gl.UNPACK_SKIP_PIXELS, skippix)
-			gl.PixelStorei(gl.UNPACK_ALIGNMENT, align)
-		}
-
 	}
 	gl.PopAttrib()
 

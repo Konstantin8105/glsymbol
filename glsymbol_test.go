@@ -8,9 +8,9 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-const SampleString rune = rune('F')
+const SampleString string = "DHKGOPSABCERGGH"
 
-var fonts [36]*Font
+var fonts [1]*Font
 
 func Test(t *testing.T) {
 	var err error
@@ -39,6 +39,10 @@ func Test(t *testing.T) {
 
 	glfw.SwapInterval(1) // Enable vsync
 
+	gl.Disable(gl.DEPTH_TEST)
+	gl.Disable(gl.LIGHTING)
+
+
 	file := "ProggyClean.ttf"
 
 	// Load the same font at different scale factors and directions.
@@ -65,9 +69,6 @@ func Test(t *testing.T) {
 	for i := range fonts {
 		defer fonts[i].Release()
 	}
-
-	gl.Disable(gl.DEPTH_TEST)
-	gl.Disable(gl.LIGHTING)
 
 	for !window.ShouldClose() {
 		// windows
@@ -98,7 +99,9 @@ func Test(t *testing.T) {
 				// We need to offset each string by the height of the
 				// font. To ensure they don't overlap each other.
 				w, _ := fonts[i].GlyphBounds()
-				x := x + float32(i*w)*1.2
+				w = 10
+				x := x + float32(i*w)
+				y := y + float32(10*i)
 
 				// Draw a rectangular backdrop using the string's metrics.
 				sw, sh := fonts[i].Metrics(string(SampleString))
@@ -107,7 +110,7 @@ func Test(t *testing.T) {
 
 				// Render the string.
 				gl.Color4f(1, 1, 1, 1)
-				err := fonts[i].Printf(x, y, rune(str[0]))
+				err := fonts[i].Printf(x, y, str)
 				if err != nil {
 					return err
 				}
