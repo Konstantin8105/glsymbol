@@ -1,8 +1,10 @@
 package glsymbol
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -137,7 +139,21 @@ func Test(t *testing.T) {
 		defer fonts[id].Release()
 	}
 
+	var fps uint64
+	start := time.Now()
+
 	for !window.ShouldClose() {
+
+		{
+			// FPS
+			if diff := time.Now().Sub(start); 1 < diff.Seconds() {
+				fmt.Printf("FPS(%d) ", fps)
+				fps = 0
+				start = time.Now()
+			}
+			fps++
+		}
+
 		glfw.PollEvents()
 		gl.Clear(gl.COLOR_BUFFER_BIT) // | gl.DEPTH_BUFFER_BIT)
 		gl.ClearColor(0, 0, 0, 0)
