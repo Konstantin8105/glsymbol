@@ -59,8 +59,6 @@ func TestDefault(t *testing.T) {
 			continue
 		}
 
-		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-		gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 		gl.Viewport(0, 0, int32(w), int32(h))
 		gl.MatrixMode(gl.PROJECTION)
 		gl.LoadIdentity()
@@ -73,7 +71,6 @@ func TestDefault(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		gl.Flush()
 		window.MakeContextCurrent()
 		window.SwapBuffers()
 
@@ -165,8 +162,6 @@ func Test(t *testing.T) {
 			continue
 		}
 
-		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-		gl.ClearColor(0.0, 0.0, 0.0, 0.0)
 		gl.Viewport(0, 0, int32(w), int32(h))
 		gl.MatrixMode(gl.PROJECTION)
 		gl.LoadIdentity()

@@ -66,7 +66,8 @@ type Glyph struct {
 	// This is used to properly align non-monospaced fonts.
 	Advance int32
 
-	letters []uint8
+	// Bitmap data of glyph
+	BitmapData []uint8
 }
 
 // A Charset represents a set of glyph descriptors for a font.
@@ -119,7 +120,24 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	gl.ShadeModel(gl.FLAT)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
 	for i, j := 0, uint32(config.Low); i < int(config.High-config.Low); i, j = i+1, j+1 { // uint32('A')
-		get(img, f, &config.Glyphs[i])
+		{ // prepare bitmap data
+			glyph := &config.Glyphs[i]
+			glyph.BitmapData = nil
+			for y := glyph.Height; 0 <= y; y-- {
+				var u uint8
+				for x := 0; x < int(glyph.Width); x++ {
+					c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
+					h := x % 8
+					if r, _, _, _ := c.RGBA(); 40000 < r {
+						u |= 1 << (7 - h)
+					}
+					if h == 7 || x == int(glyph.Width)-1 {
+						glyph.BitmapData = append(glyph.BitmapData, u)
+						u = 0
+					}
+				}
+			}
+		}
 
 		if f.MaxGlyphHeight < config.Glyphs[i].Height {
 			f.MaxGlyphHeight = config.Glyphs[i].Height
@@ -133,68 +151,11 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	return
 }
 
-func get(img *image.RGBA, f *Font, glyph *Glyph) {
-	glyph.letters = nil
-	for y := glyph.Height; 0 <= y; y-- {
-		var u uint8
-		for x := 0; x < int(glyph.Width); x++ {
-			c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
-			h := x % 8
-			if r, _, _, _ := c.RGBA(); 40000 < r {
-				u |= 1 << (7 - h)
-			}
-			if h == 7 || x == int(glyph.Width)-1 {
-				glyph.letters = append(glyph.letters, u)
-				u = 0
-			}
-		}
-	}
-}
-
 // Release releases font resources.
 // A font can no longer be used for rendering after this call completes.
 func (f *Font) Release() {
 	f.Config = nil
 }
-
-// Metrics returns the pixel width and height for the given string.
-// This takes the scale and rendering direction of the font into account.
-//
-// Unknown runes will be counted as having the maximum glyph bounds as
-// defined by Font.GlyphBounds().
-// func (f *Font) Metrics(text string) (int32, int32) {
-// 	if len(text) == 0 {
-// 		return 0, 0
-// 	}
-// 	return f.advanceSize(text), f.MaxGlyphHeight
-// }
-
-// advanceSize computes the pixel width or height for the given single-line
-// input string. This iterates over all of its runes, finds the matching
-// Charset entry and adds up the Advance values.
-//
-// Unknown runes will be counted as having the maximum glyph bounds as
-// defined by Font.GlyphBounds().
-// func (f *Font) advanceSize(line string) int32 {
-// 	gw, _ := f.MaxGlyphWidth, f.MaxGlyphHeight
-// 	glyphs := f.Config.Glyphs
-// 	low := f.Config.Low
-// 	indices := []rune(line)
-//
-// 	var size int32
-// 	for _, r := range indices {
-// 		r -= low
-//
-// 		if r >= 0 && int(r) < len(glyphs) {
-// 			size += glyphs[r].Advance
-// 			continue
-// 		}
-//
-// 		size += gw
-// 	}
-//
-// 	return size
-// }
 
 // Printf draws the given string at the specified coordinates.
 // It expects the string to be a single line. Line breaks are not
@@ -204,30 +165,7 @@ func (f *Font) Release() {
 // the text up into individual lines of adequate length and then call
 // this method for each line seperately.
 func (f *Font) Printf(x, y float32, str string) error {
-	// 	indices := []rune(str)
-	//
-	// 	if len(indices) == 0 {
-	// 		return nil
-	// 	}
-	//
-	// 	// Runes form display list indices.
-	// 	// For this purpose, they need to be offset by -FontConfig.Low
-	// 	low := f.Config.Low
-	// 	for i := range indices {
-	// 		indices[i] -= low
-	// 	}
-
-	// 	var vp [4]int32
-	// 	gl.GetIntegerv(gl.VIEWPORT, &vp[0])
-	//
-	// 	gl.PushAttrib(gl.TRANSFORM_BIT)
-	// 	gl.MatrixMode(gl.PROJECTION)
-	// 	gl.PushMatrix()
-	// 	gl.LoadIdentity()
-	// 	gl.Ortho(float64(vp[0]), float64(vp[2]), float64(vp[1]), float64(vp[3]), 0, 1)
-	// 	gl.PopAttrib()
-
-	gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
+	// gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
 		for ib, b := range str {
 			i := b - f.Config.Low
@@ -236,16 +174,11 @@ func (f *Font) Printf(x, y float32, str string) error {
 				f.Config.Glyphs[i].Width, f.Config.Glyphs[i].Height,
 				0.0, 2.0,
 				10.0, 0.0,
-				(*uint8)(gl.Ptr(&f.Config.Glyphs[i].letters[0])),
+				(*uint8)(gl.Ptr(&f.Config.Glyphs[i].BitmapData[0])),
 			)
 		}
 	}
-	gl.PopAttrib()
-
-	// 	gl.PushAttrib(gl.TRANSFORM_BIT)
-	// 	gl.MatrixMode(gl.PROJECTION)
-	// 	gl.PopMatrix()
-	// 	gl.PopAttrib()
+	// gl.PopAttrib()
 	return checkGLError()
 }
 
