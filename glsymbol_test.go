@@ -60,7 +60,7 @@ func Test(t *testing.T) {
 		t.Fatalf("LoadFont: %v", err)
 	}
 
-	// fmt.Println(">>", SampleString)
+	fmt.Println(">>", SampleString)
 
 	for !window.ShouldClose() {
 		glfw.PollEvents()

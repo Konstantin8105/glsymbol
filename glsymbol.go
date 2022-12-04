@@ -86,6 +86,8 @@ type Font struct {
 	Listbase       uint32      // Holds the first display list id.
 	MaxGlyphWidth  int         // Largest glyph width.
 	MaxGlyphHeight int         // Largest glyph height.
+
+	fontOffset uint32
 }
 
 // loadFont loads the given font data. This does not deal with font scaling.
@@ -174,9 +176,11 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	// 		// gl.EndList()
 	// 	}
 
+	fmt.Println(">size > ", img.Bounds())
+
 	gl.ShadeModel(gl.FLAT)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-	fontOffset = gl.GenLists(128)
+	f.fontOffset = gl.GenLists(128)
 	for i, j := 0, uint32(65); i < 26; i, j = i+1, j+1 { // uint32('A')
 		get(img, f, &config.Glyphs[i])
 		// if len(config.Glyphs[i].letters)  != int(config.Glyphs[i].Width*config.Glyphs[i].Height) /8{
@@ -185,11 +189,11 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 		// 		int(config.Glyphs[i].Width*config.Glyphs[i].Height)/8,
 		// 	))
 		// }
-		gl.NewList(uint32(fontOffset+j), gl.COMPILE)
+		gl.NewList(uint32(f.fontOffset+j), gl.COMPILE)
 		gl.Bitmap(
 			config.Glyphs[i].Width, config.Glyphs[i].Height,
-			0.0, 0.0,
-			0.0, 0.0,
+			0.0, 2.0,
+			10.0, 0.0,
 			(*uint8)(gl.Ptr(&config.Glyphs[i].letters[0])),
 		)
 		gl.EndList()
@@ -200,36 +204,75 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 }
 
 func get(img *image.RGBA, f *Font, glyph *Glyph) {
-	fmt.Printf(	"%#v\n",*glyph)
-
-	// generate bitmap picture
-	var bits []bool
-
-	mi := img.Bounds().Min
-	ma := img.Bounds().Max
-	glyph.Width = int32(ma.X - mi.X)
-	glyph.Height = int32(ma.Y - mi.Y)
-	for y := ma.Y; 0 <= y; y-- {
-		for x := 0; x < ma.X; x++ {
-			c := img.At(x, y)
-			if r, _, _, _ := c.RGBA(); r < 2 {
-				bits = append(bits, true)
-				continue
-			}
-			bits = append(bits, false)
-		}
-	}
+	fmt.Printf("%#v\n", *glyph)
 
 	glyph.letters = nil
-	var u uint8
-	for i := range bits {
-		h := i % 8
-		if !bits[i] {
-			u |= 1 << (7 - h)
-		}
-		if h == 7 || i == len(bits)-1 {
-			glyph.letters = append(glyph.letters, u)
-			u = 0
+
+	// generate bitmap picture
+	// 	var bits []bool
+	// 	mi := img.Bounds().Min
+	// 	ma := img.Bounds().Max
+	// 	glyph.Width = int32(ma.X - mi.X)
+	// 	glyph.Height = int32(ma.Y - mi.Y)
+	// 	for y := ma.Y; 0 <= y; y-- {
+	// 		for x := 0; x < ma.X; x++ {
+	// 			c := img.At(x, y)
+	// 			if r, _, _, _ := c.RGBA(); r < 2 {
+	// 				bits = append(bits, true)
+	// 				continue
+	// 			}
+	// 			bits = append(bits, false)
+	// 		}
+	// 	}
+	// 	var u uint8
+	// 	for i := range bits {
+	// 		h := i % 8
+	// 		if !bits[i] {
+	// 			u |= 1 << (7 - h)
+	// 		}
+	// 		if h == 7 || i == len(bits)-1 {
+	// 			glyph.letters = append(glyph.letters, u)
+	// 			u = 0
+	// 		}
+	// 	}
+
+	// 	var bits []bool
+	// 	for y := glyph.Height; 0 <= y; y-- {
+	// 		for x := 0; x < int(glyph.Width); x++ {
+	// 			c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
+	// 			if r, _, _, _ := c.RGBA(); r < 2 {
+	// 				bits = append(bits, true)
+	// 				continue
+	// 			}
+	// 			bits = append(bits, false)
+	// 		}
+	// 	}
+	// 	var u uint8
+	// 	for i := range bits {
+	// 		h := i % 8
+	// 		if !bits[i] {
+	// 			u |= 1 << (7 - h)
+	// 		}
+	// 		if h == 7 || i == len(bits)-1 {
+	// 			glyph.letters = append(glyph.letters, u)
+	// 			u = 0
+	// 		}
+	// 	}
+
+	for y := glyph.Height; 0 <= y; y-- {
+		var u uint8
+		for x := 0; x < int(glyph.Width); x++ {
+			c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
+
+			h := x % 8
+			if r, _, _, _ := c.RGBA(); !(r < 2) {
+				u |= 1 << (7 - h)
+			}
+
+			if h == 7 || x == int(glyph.Width)-1 {
+				glyph.letters = append(glyph.letters, u)
+				u = 0
+			}
 		}
 	}
 
@@ -247,7 +290,7 @@ func get(img *image.RGBA, f *Font, glyph *Glyph) {
 
 // var once sync.Once
 
-var fontOffset uint32 = 55
+// var fontOffset uint32 = 55
 
 // var space = []uint8{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 // var letters = [200][]uint8{
@@ -359,17 +402,14 @@ func (f *Font) Printf(x, y float32, str string) error {
 
 	gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
-		{
-			// gl.Color3f(0.5, 1, 0)
-			gl.RasterPos2i(int32(x), int32(y))
-			gl.ListBase(fontOffset)
-			var s []uint8
-			for _, b := range str { // indices {
-				s = append(s, uint8(b))
-				// fmt.Println(	s, string( b))
-			}
-			gl.CallLists(int32(len(s)), gl.UNSIGNED_BYTE, unsafe.Pointer(gl.Ptr(s))) // (GLubyte *) s);
+		gl.RasterPos2i(int32(x), int32(y))
+		gl.ListBase(f.fontOffset)
+		var s []uint8
+		for _, b := range str { // indices {
+			s = append(s, uint8(b))
+			// fmt.Println(	s, string( b))
 		}
+		gl.CallLists(int32(len(s)), gl.UNSIGNED_BYTE, unsafe.Pointer(gl.Ptr(&s[0]))) // (GLubyte *) s);
 	}
 	gl.PopAttrib()
 
