@@ -59,7 +59,7 @@ func Test(t *testing.T) {
 		}
 		defer fd.Close()
 		return LoadTruetype(fd, scale, rune(byte(low)),rune(byte( high)))
-	}(int32(16)); err != nil {
+	}(int32(13)); err != nil {
 		t.Fatalf("LoadFont: %v", err)
 	}
 
