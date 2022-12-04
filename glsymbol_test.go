@@ -121,7 +121,7 @@ func Test(t *testing.T) {
 	gl.Disable(gl.LIGHTING)
 
 	file := "ProggyClean.ttf"
-	var fonts [10]*Font
+	var fonts [2]*Font
 
 	for id := range fonts {
 		// loadFont loads the specified font at the given scale.

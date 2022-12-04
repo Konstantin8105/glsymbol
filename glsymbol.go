@@ -121,6 +121,10 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	gl.ShadeModel(gl.FLAT)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
 	f.FontOffset = gl.GenLists(128)
+	if f.FontOffset == 0 {
+		err = fmt.Errorf("cannot create glGenLists")
+		return
+	}
 	for i, j := 0, uint32(config.Low); i < int(config.High-config.Low); i, j = i+1, j+1 { // uint32('A')
 		get(img, f, &config.Glyphs[i])
 
@@ -175,12 +179,12 @@ func (f *Font) Release() {
 //
 // Unknown runes will be counted as having the maximum glyph bounds as
 // defined by Font.GlyphBounds().
-func (f *Font) Metrics(text string) (int32, int32) {
-	if len(text) == 0 {
-		return 0, 0
-	}
-	return f.advanceSize(text), f.MaxGlyphHeight
-}
+// func (f *Font) Metrics(text string) (int32, int32) {
+// 	if len(text) == 0 {
+// 		return 0, 0
+// 	}
+// 	return f.advanceSize(text), f.MaxGlyphHeight
+// }
 
 // advanceSize computes the pixel width or height for the given single-line
 // input string. This iterates over all of its runes, finds the matching
@@ -188,26 +192,26 @@ func (f *Font) Metrics(text string) (int32, int32) {
 //
 // Unknown runes will be counted as having the maximum glyph bounds as
 // defined by Font.GlyphBounds().
-func (f *Font) advanceSize(line string) int32 {
-	gw, _ := f.MaxGlyphWidth, f.MaxGlyphHeight
-	glyphs := f.Config.Glyphs
-	low := f.Config.Low
-	indices := []rune(line)
-
-	var size int32
-	for _, r := range indices {
-		r -= low
-
-		if r >= 0 && int(r) < len(glyphs) {
-			size += glyphs[r].Advance
-			continue
-		}
-
-		size += gw
-	}
-
-	return size
-}
+// func (f *Font) advanceSize(line string) int32 {
+// 	gw, _ := f.MaxGlyphWidth, f.MaxGlyphHeight
+// 	glyphs := f.Config.Glyphs
+// 	low := f.Config.Low
+// 	indices := []rune(line)
+//
+// 	var size int32
+// 	for _, r := range indices {
+// 		r -= low
+//
+// 		if r >= 0 && int(r) < len(glyphs) {
+// 			size += glyphs[r].Advance
+// 			continue
+// 		}
+//
+// 		size += gw
+// 	}
+//
+// 	return size
+// }
 
 // Printf draws the given string at the specified coordinates.
 // It expects the string to be a single line. Line breaks are not
