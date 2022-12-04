@@ -1,6 +1,7 @@
 package glsymbol
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -33,7 +34,7 @@ func Test(t *testing.T) {
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 
 	var window *glfw.Window
-	window, err = glfw.CreateWindow(600, 300, "3D model", nil, nil)
+	window, err = glfw.CreateWindow(300, 300, "3D model", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +50,7 @@ func Test(t *testing.T) {
 	gl.Disable(gl.LIGHTING)
 
 	file := "ProggyClean.ttf"
-	var fonts [8]*Font
+	var fonts [10]*Font
 
 	for id := range fonts {
 		// loadFont loads the specified font at the given scale.
@@ -63,12 +64,17 @@ func Test(t *testing.T) {
 		}(int32(fontSize) + int32(id)*3); err != nil {
 			t.Fatalf("LoadFont: %v", err)
 		}
+		defer fonts[id].Release()
+	}
+
+	for id := range fonts {
+		fmt.Println(id, fonts[id].FontOffset)
 	}
 
 	for !window.ShouldClose() {
 		glfw.PollEvents()
-		gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-		gl.ClearColor(0, 0, 0, 1)
+		gl.Clear(gl.COLOR_BUFFER_BIT) // | gl.DEPTH_BUFFER_BIT)
+		gl.ClearColor(0, 0, 0, 0)
 
 		w, h := window.GetSize()
 		if w < 10 || h < 10 {
@@ -77,8 +83,16 @@ func Test(t *testing.T) {
 			continue
 		}
 
+		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+		gl.ClearColor(0.0, 0.0, 0.0, 0.0)
+		gl.Viewport(0, 0, int32(w), int32(h))
+		gl.MatrixMode(gl.PROJECTION)
+		gl.LoadIdentity()
+		gl.Ortho(0, float64(w), 0, float64(h), -1.0, 1.0)
+		gl.MatrixMode(gl.MODELVIEW)
+
 		for id := range fonts {
-			for i, size := 0, 10; i < size; i++ {
+			for i, size := 0, 15; i < size; i++ {
 				v := float32(i) / float32(size)
 				// Render the string.
 				gl.Color4f(v, 1-v, 0, 1)
@@ -92,6 +106,7 @@ func Test(t *testing.T) {
 			}
 		}
 
+		gl.Flush()
 		window.MakeContextCurrent()
 		window.SwapBuffers()
 

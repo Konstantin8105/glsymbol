@@ -82,12 +82,9 @@ type FontConfig struct {
 // A Font allows rendering of text to an OpenGL context.
 type Font struct {
 	Config         *FontConfig // Character set for this font.
-	Texture        uint32      // Holds the glyph texture id.
-	Listbase       uint32      // Holds the first display list id.
-	MaxGlyphWidth  int32        // Largest glyph width.
-	MaxGlyphHeight int32        // Largest glyph height.
-
-	fontOffset uint32
+	MaxGlyphWidth  int32       // Largest glyph width.
+	MaxGlyphHeight int32       // Largest glyph height.
+	FontOffset     uint32      // Holds the first display list id.
 }
 
 // loadFont loads the given font data. This does not deal with font scaling.
@@ -103,18 +100,18 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 
 	gl.ShadeModel(gl.FLAT)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-	f.fontOffset = gl.GenLists(128)
-	for i, j := 0, uint32(config.Low); i < int(config.High - config.Low); i, j = i+1, j+1 { // uint32('A')
+	f.FontOffset = gl.GenLists(128)
+	for i, j := 0, uint32(config.Low); i < int(config.High-config.Low); i, j = i+1, j+1 { // uint32('A')
 		get(img, f, &config.Glyphs[i])
 
 		if f.MaxGlyphHeight < config.Glyphs[i].Height {
-		f.MaxGlyphHeight = config.Glyphs[i].Height
+			f.MaxGlyphHeight = config.Glyphs[i].Height
 		}
 		if f.MaxGlyphWidth < config.Glyphs[i].Width {
-		   f.MaxGlyphWidth = config.Glyphs[i].Width
+			f.MaxGlyphWidth = config.Glyphs[i].Width
 		}
 
-		gl.NewList(uint32(f.fontOffset+j), gl.COMPILE)
+		gl.NewList(uint32(f.FontOffset+j), gl.COMPILE)
 		gl.Bitmap(
 			config.Glyphs[i].Width, config.Glyphs[i].Height,
 			0.0, 2.0,
@@ -135,7 +132,7 @@ func get(img *image.RGBA, f *Font, glyph *Glyph) {
 		for x := 0; x < int(glyph.Width); x++ {
 			c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
 			h := x % 8
-			if r, _, _, _ := c.RGBA(); !(r < 150) {
+			if r, _, _, _ := c.RGBA(); 40000 < r {
 				u |= 1 << (7 - h)
 			}
 			if h == 7 || x == int(glyph.Width)-1 {
@@ -146,45 +143,10 @@ func get(img *image.RGBA, f *Font, glyph *Glyph) {
 	}
 }
 
-// var once sync.Once
-
-// var fontOffset uint32 = 55
-
-// var space = []uint8{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
-// var letters = [200][]uint8{
-// 	{0x00, 0x00, 0xc3, 0xc3, 0xc3, 0xc3, 0xff, 0xc3, 0xc3, 0xc3, 0x66, 0x3c, 0x18},
-// 	{0x00, 0x00, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe},
-// 	{0x00, 0x00, 0x7e, 0xe7, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xe7, 0x7e},
-// 	{0x00, 0x00, 0xfc, 0xce, 0xc7, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc7, 0xce, 0xfc},
-// 	{0x00, 0x00, 0xff, 0xc0, 0xc0, 0xc0, 0xc0, 0xfc, 0xc0, 0xc0, 0xc0, 0xc0, 0xff},
-// 	{0x00, 0x00, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xfc, 0xc0, 0xc0, 0xc0, 0xff},
-// 	{0x00, 0x00, 0x7e, 0xe7, 0xc3, 0xc3, 0xcf, 0xc0, 0xc0, 0xc0, 0xc0, 0xe7, 0x7e},
-// 	{0x00, 0x00, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xff, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
-// 	{0x00, 0x00, 0x7e, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x7e},
-// 	{0x00, 0x00, 0x7c, 0xee, 0xc6, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06, 0x06},
-// 	{0x00, 0x00, 0xc3, 0xc6, 0xcc, 0xd8, 0xf0, 0xe0, 0xf0, 0xd8, 0xcc, 0xc6, 0xc3},
-// 	{0x00, 0x00, 0xff, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0},
-// 	{0x00, 0x00, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xdb, 0xff, 0xff, 0xe7, 0xc3},
-// 	{0x00, 0x00, 0xc7, 0xc7, 0xcf, 0xcf, 0xdf, 0xdb, 0xfb, 0xf3, 0xf3, 0xe3, 0xe3},
-// 	{0x00, 0x00, 0x7e, 0xe7, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xe7, 0x7e},
-// 	{0x00, 0x00, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe},
-// 	{0x00, 0x00, 0x3f, 0x6e, 0xdf, 0xdb, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0x66, 0x3c},
-// 	{0x00, 0x00, 0xc3, 0xc6, 0xcc, 0xd8, 0xf0, 0xfe, 0xc7, 0xc3, 0xc3, 0xc7, 0xfe},
-// 	{0x00, 0x00, 0x7e, 0xe7, 0x03, 0x03, 0x07, 0x7e, 0xe0, 0xc0, 0xc0, 0xe7, 0x7e},
-// 	{0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0xff},
-// 	{0x00, 0x00, 0x7e, 0xe7, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
-// 	{0x00, 0x00, 0x18, 0x3c, 0x3c, 0x66, 0x66, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
-// 	{0x00, 0x00, 0xc3, 0xe7, 0xff, 0xff, 0xdb, 0xdb, 0xc3, 0xc3, 0xc3, 0xc3, 0xc3},
-// 	{0x00, 0x00, 0xc3, 0x66, 0x66, 0x3c, 0x3c, 0x18, 0x3c, 0x3c, 0x66, 0x66, 0xc3},
-// 	{0x00, 0x00, 0x18, 0x18, 0x18, 0x18, 0x18, 0x18, 0x3c, 0x3c, 0x66, 0x66, 0xc3},
-// 	{0x00, 0x00, 0xff, 0xc0, 0xc0, 0x60, 0x30, 0x7e, 0x0c, 0x06, 0x03, 0x03, 0xff},
-// }
-
 // Release releases font resources.
 // A font can no longer be used for rendering after this call completes.
 func (f *Font) Release() {
-	gl.DeleteTextures(1, &f.Texture)
-	gl.DeleteLists(f.Listbase, int32(len(f.Config.Glyphs)))
+	gl.DeleteLists(f.FontOffset, int32(len(f.Config.Glyphs)))
 	f.Config = nil
 }
 
@@ -248,33 +210,38 @@ func (f *Font) Printf(x, y float32, str string) error {
 	// 		indices[i] -= low
 	// 	}
 
-	var vp [4]int32
-	gl.GetIntegerv(gl.VIEWPORT, &vp[0])
-
-	gl.PushAttrib(gl.TRANSFORM_BIT)
-	gl.MatrixMode(gl.PROJECTION)
-	gl.PushMatrix()
-	gl.LoadIdentity()
-	gl.Ortho(float64(vp[0]), float64(vp[2]), float64(vp[1]), float64(vp[3]), 0, 1)
-	gl.PopAttrib()
+	// 	var vp [4]int32
+	// 	gl.GetIntegerv(gl.VIEWPORT, &vp[0])
+	//
+	// 	gl.PushAttrib(gl.TRANSFORM_BIT)
+	// 	gl.MatrixMode(gl.PROJECTION)
+	// 	gl.PushMatrix()
+	// 	gl.LoadIdentity()
+	// 	gl.Ortho(float64(vp[0]), float64(vp[2]), float64(vp[1]), float64(vp[3]), 0, 1)
+	// 	gl.PopAttrib()
 
 	gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
-		gl.RasterPos2i(int32(x), int32(y))
-		gl.ListBase(f.fontOffset)
-		var s []uint8
-		for _, b := range str { // indices {
-			s = append(s, uint8(b))
-			// fmt.Println(	s, string( b))
+		// gl.RasterPos2i(int32(x), int32(y))
+		// gl.ListBase(f.FontOffset)
+		// var s []uint8
+		// for _, b := range str { // indices {
+		// 	s = append(s, uint8(b))
+		// }
+		// gl.CallLists(int32(len(s)), gl.UNSIGNED_BYTE, unsafe.Pointer(gl.Ptr(&s[0])))
+
+		for ib, b := range str {
+			gl.RasterPos2i(int32(x)+int32(f.Config.Glyphs[b-f.Config.Low].Width)*int32(ib), int32(y))
+			gl.ListBase(f.FontOffset)
+			gl.CallLists(1, gl.UNSIGNED_BYTE, unsafe.Pointer(&b))
 		}
-		gl.CallLists(int32(len(s)), gl.UNSIGNED_BYTE, unsafe.Pointer(gl.Ptr(&s[0]))) // (GLubyte *) s);
 	}
 	gl.PopAttrib()
 
-	gl.PushAttrib(gl.TRANSFORM_BIT)
-	gl.MatrixMode(gl.PROJECTION)
-	gl.PopMatrix()
-	gl.PopAttrib()
+	// 	gl.PushAttrib(gl.TRANSFORM_BIT)
+	// 	gl.MatrixMode(gl.PROJECTION)
+	// 	gl.PopMatrix()
+	// 	gl.PopAttrib()
 	return checkGLError()
 }
 
@@ -288,26 +255,6 @@ func Pow2(x uint32) uint32 {
 	x |= x >> 8
 	x |= x >> 16
 	return x + 1
-}
-
-// IsPow2 returns true if the given value is a power-of-two.
-func IsPow2(x uint32) bool { return (x & (x - 1)) == 0 }
-
-// Pow2Image returns the given image, scaled to the smallest power-of-two
-// dimensions larger or equal to the input dimensions.
-// It preserves the image format and contents.
-//
-// This is useful if an image is to be used as an OpenGL texture.
-// These often require image data to have power-of-two dimensions.
-func Pow2Image(src image.Image) image.Image {
-	sb := src.Bounds()
-	w, h := uint32(sb.Dx()), uint32(sb.Dy())
-
-	if IsPow2(w) && IsPow2(h) {
-		return src // Nothing to do.
-	}
-
-	panic("not implemented")
 }
 
 // http://www.freetype.org/freetype2/docs/tutorial/step2.html
