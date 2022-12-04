@@ -11,10 +11,13 @@ import (
 
 func Test(t *testing.T) {
 
+	low, high := 32, 127
+
 	var SampleString string
-	for b := 'A'; b < 'Z'; b++ {
-		SampleString += string(b) + string(b)
+	for b := low; b < high; b++ {
+		SampleString += string(byte(b))
 	}
+	SampleString = "Hello world"
 
 	var err error
 	if err = glfw.Init(); err != nil {
@@ -55,12 +58,10 @@ func Test(t *testing.T) {
 			return nil, err
 		}
 		defer fd.Close()
-		return LoadTruetype(fd, scale, 32, 127)
+		return LoadTruetype(fd, scale, rune(byte(low)),rune(byte( high)))
 	}(int32(16)); err != nil {
 		t.Fatalf("LoadFont: %v", err)
 	}
-
-	fmt.Println(">>", SampleString)
 
 	for !window.ShouldClose() {
 		glfw.PollEvents()

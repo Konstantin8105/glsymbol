@@ -101,94 +101,11 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	f = new(Font)
 	f.Config = config
 
-	// Resize image to next power-of-two.
-	// img = Pow2Image(img).(*image.RGBA)
-
-	// 	ib := img.Bounds()
-
-	// 	// Create the texture itself. It will contain all glyphs.
-	// 	// Individual glyph-quads display a subset of this texture.
-	// 	gl.GenTextures(1, &f.Texture)
-	// 	gl.BindTexture(gl.TEXTURE_2D, f.Texture)
-	// 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-	// 	gl.TexParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-	// 	gl.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(ib.Dx()), int32(ib.Dy()), 0,
-	// 		gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(img.Pix))
-	//
-	// 	// Unavailable in OpenGL 2.1,
-	// 	// use gluBuild2DMipmaps() instead
-	// 	gl.GenerateMipmap(gl.TEXTURE_2D)
-	// 	gl.BindTexture(gl.TEXTURE_2D, 0)
-	//
-	// 	//  Create display lists for each glyph.
-	// 	f.Listbase = gl.GenLists(int32(len(config.Glyphs)))
-	//
-	// 	texWidth := float32(ib.Dx())
-	// 	texHeight := float32(ib.Dy())
-	//
-	// 	var widthG, heightG int32
-	//
-	// 	for index, glyph := range config.Glyphs {
-	// 		// Update max glyph bounds.
-	// 		if glyph.Width > f.MaxGlyphWidth {
-	// 			f.MaxGlyphWidth = glyph.Width
-	// 		}
-	//
-	// 		if glyph.Height > f.MaxGlyphHeight {
-	// 			f.MaxGlyphHeight = glyph.Height
-	// 		}
-	//
-	// 		// Quad width/height
-	// 		vw := float32(glyph.Width)
-	// 		vh := float32(glyph.Height)
-	//
-	// 		// Texture coordinate offsets.
-	// 		tx1 := float32(glyph.X) / texWidth
-	// 		ty1 := float32(glyph.Y) / texHeight
-	// 		tx2 := (float32(glyph.X) + vw) / texWidth
-	// 		ty2 := (float32(glyph.Y) + vh) / texHeight
-	//
-	// 		// Advance width (or height if we render top-to-bottom)
-	// 		adv := float32(glyph.Advance)
-	//
-	// 		fmt.Println(":", index, glyph, tx1, ty1, tx2, ty2)
-	// 		widthG = int32(glyph.Width)
-	// 		heightG = int32(glyph.Height
-	// 		_ = adv
-	//
-	// 		// gl.NewList(f.Listbase+uint32(index), gl.COMPILE)
-	// 		// {
-	// 		// 	gl.Begin(gl.QUADS)
-	// 		// 	{
-	// 		// 		gl.TexCoord2f(tx1, ty2)
-	// 		// 		gl.Vertex2f(0, 0)
-	// 		// 		gl.TexCoord2f(tx2, ty2)
-	// 		// 		gl.Vertex2f(vw, 0)
-	// 		// 		gl.TexCoord2f(tx2, ty1)
-	// 		// 		gl.Vertex2f(vw, vh)
-	// 		// 		gl.TexCoord2f(tx1, ty1)
-	// 		// 		gl.Vertex2f(0, vh)
-	// 		// 	}
-	// 		// 	gl.End()
-	// 		// 	// LeftToRight
-	// 		// 	gl.Translatef(adv, 0, 0)
-	// 		// }
-	// 		// gl.EndList()
-	// 	}
-
-	fmt.Println(">size > ", img.Bounds())
-
 	gl.ShadeModel(gl.FLAT)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
 	f.fontOffset = gl.GenLists(128)
-	for i, j := 0, uint32(65); i < 26; i, j = i+1, j+1 { // uint32('A')
+	for i, j := 0, uint32(config.Low); i < int(config.High - config.Low); i, j = i+1, j+1 { // uint32('A')
 		get(img, f, &config.Glyphs[i])
-		// if len(config.Glyphs[i].letters)  != int(config.Glyphs[i].Width*config.Glyphs[i].Height) /8{
-		// 	panic(fmt.Sprintf("size: %v != %v",
-		// 		len(config.Glyphs[i].letters),
-		// 		int(config.Glyphs[i].Width*config.Glyphs[i].Height)/8,
-		// 	))
-		// }
 		gl.NewList(uint32(f.fontOffset+j), gl.COMPILE)
 		gl.Bitmap(
 			config.Glyphs[i].Width, config.Glyphs[i].Height,
@@ -204,61 +121,7 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 }
 
 func get(img *image.RGBA, f *Font, glyph *Glyph) {
-	fmt.Printf("%#v\n", *glyph)
-
 	glyph.letters = nil
-
-	// generate bitmap picture
-	// 	var bits []bool
-	// 	mi := img.Bounds().Min
-	// 	ma := img.Bounds().Max
-	// 	glyph.Width = int32(ma.X - mi.X)
-	// 	glyph.Height = int32(ma.Y - mi.Y)
-	// 	for y := ma.Y; 0 <= y; y-- {
-	// 		for x := 0; x < ma.X; x++ {
-	// 			c := img.At(x, y)
-	// 			if r, _, _, _ := c.RGBA(); r < 2 {
-	// 				bits = append(bits, true)
-	// 				continue
-	// 			}
-	// 			bits = append(bits, false)
-	// 		}
-	// 	}
-	// 	var u uint8
-	// 	for i := range bits {
-	// 		h := i % 8
-	// 		if !bits[i] {
-	// 			u |= 1 << (7 - h)
-	// 		}
-	// 		if h == 7 || i == len(bits)-1 {
-	// 			glyph.letters = append(glyph.letters, u)
-	// 			u = 0
-	// 		}
-	// 	}
-
-	// 	var bits []bool
-	// 	for y := glyph.Height; 0 <= y; y-- {
-	// 		for x := 0; x < int(glyph.Width); x++ {
-	// 			c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
-	// 			if r, _, _, _ := c.RGBA(); r < 2 {
-	// 				bits = append(bits, true)
-	// 				continue
-	// 			}
-	// 			bits = append(bits, false)
-	// 		}
-	// 	}
-	// 	var u uint8
-	// 	for i := range bits {
-	// 		h := i % 8
-	// 		if !bits[i] {
-	// 			u |= 1 << (7 - h)
-	// 		}
-	// 		if h == 7 || i == len(bits)-1 {
-	// 			glyph.letters = append(glyph.letters, u)
-	// 			u = 0
-	// 		}
-	// 	}
-
 	for y := glyph.Height; 0 <= y; y-- {
 		var u uint8
 		for x := 0; x < int(glyph.Width); x++ {
@@ -275,17 +138,6 @@ func get(img *image.RGBA, f *Font, glyph *Glyph) {
 			}
 		}
 	}
-
-	//	{
-	//		f, err := os.Create("img.jpg")
-	//		if err != nil {
-	//			panic(err)
-	//		}
-	//		defer f.Close()
-	//		if err = jpeg.Encode(f, img, nil); err != nil {
-	//			panic(err)
-	//		}
-	//	}
 }
 
 // var once sync.Once
