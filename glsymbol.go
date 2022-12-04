@@ -28,7 +28,6 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-	"unsafe"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/golang/freetype"
@@ -104,7 +103,6 @@ type Font struct {
 	Config         *FontConfig // Character set for this font.
 	MaxGlyphWidth  int32       // Largest glyph width.
 	MaxGlyphHeight int32       // Largest glyph height.
-	FontOffset     uint32      // Holds the first display list id.
 }
 
 // loadFont loads the given font data. This does not deal with font scaling.
@@ -120,7 +118,6 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 
 	gl.ShadeModel(gl.FLAT)
 	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-	f.FontOffset = gl.GenLists(128)
 	for i, j := 0, uint32(config.Low); i < int(config.High-config.Low); i, j = i+1, j+1 { // uint32('A')
 		get(img, f, &config.Glyphs[i])
 
@@ -129,17 +126,6 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 		}
 		if f.MaxGlyphWidth < config.Glyphs[i].Width {
 			f.MaxGlyphWidth = config.Glyphs[i].Width
-		}
-
-		if 0 < f.FontOffset {
-			gl.NewList(uint32(f.FontOffset+j), gl.COMPILE)
-			gl.Bitmap(
-				config.Glyphs[i].Width, config.Glyphs[i].Height,
-				0.0, 2.0,
-				10.0, 0.0,
-				(*uint8)(gl.Ptr(&config.Glyphs[i].letters[0])),
-			)
-			gl.EndList()
 		}
 	}
 
@@ -168,7 +154,6 @@ func get(img *image.RGBA, f *Font, glyph *Glyph) {
 // Release releases font resources.
 // A font can no longer be used for rendering after this call completes.
 func (f *Font) Release() {
-	gl.DeleteLists(f.FontOffset, int32(len(f.Config.Glyphs)))
 	f.Config = nil
 }
 
@@ -244,28 +229,15 @@ func (f *Font) Printf(x, y float32, str string) error {
 
 	gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
-		// gl.RasterPos2i(int32(x), int32(y))
-		// gl.ListBase(f.FontOffset)
-		// var s []uint8
-		// for _, b := range str { // indices {
-		// 	s = append(s, uint8(b))
-		// }
-		// gl.CallLists(int32(len(s)), gl.UNSIGNED_BYTE, unsafe.Pointer(gl.Ptr(&s[0])))
-
 		for ib, b := range str {
 			i := b - f.Config.Low
 			gl.RasterPos2i(int32(x)+int32(f.Config.Glyphs[i].Width)*int32(ib), int32(y))
-			if 0 < f.FontOffset {
-				gl.ListBase(f.FontOffset)
-				gl.CallLists(1, gl.UNSIGNED_BYTE, unsafe.Pointer(&b))
-			} else {
-				gl.Bitmap(
-					f.Config.Glyphs[i].Width, f.Config.Glyphs[i].Height,
-					0.0, 2.0,
-					10.0, 0.0,
-					(*uint8)(gl.Ptr(&f.Config.Glyphs[i].letters[0])),
-				)
-			}
+			gl.Bitmap(
+				f.Config.Glyphs[i].Width, f.Config.Glyphs[i].Height,
+				0.0, 2.0,
+				10.0, 0.0,
+				(*uint8)(gl.Ptr(&f.Config.Glyphs[i].letters[0])),
+			)
 		}
 	}
 	gl.PopAttrib()

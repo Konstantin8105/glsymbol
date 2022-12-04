@@ -1,7 +1,6 @@
 package glsymbol
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -136,10 +135,6 @@ func Test(t *testing.T) {
 			t.Fatalf("LoadFont: %v", err)
 		}
 		defer fonts[id].Release()
-	}
-
-	for id := range fonts {
-		fmt.Println(id, fonts[id].FontOffset)
 	}
 
 	for !window.ShouldClose() {
