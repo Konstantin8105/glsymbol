@@ -184,6 +184,13 @@ func Test(t *testing.T) {
 		}
 
 		gl.Flush()
+
+		// TODO:
+		// if false {
+		// 	pixels := make([]uint8, 3*w*h)
+		// 	gl.ReadPixels(0, 0, w, h, gl.RGB, gl.UNSIGNED_BYTE, pixels)
+		// }
+
 		window.MakeContextCurrent()
 		window.SwapBuffers()
 
