@@ -1,6 +1,7 @@
 package glsymbol
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -29,7 +30,7 @@ func Test(t *testing.T) {
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 
 	var window *glfw.Window
-	window, err = glfw.CreateWindow(800, 300, "3D model", nil, nil)
+	window, err = glfw.CreateWindow(600, 300, "3D model", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,9 +56,11 @@ func Test(t *testing.T) {
 		}
 		defer fd.Close()
 		return LoadTruetype(fd, scale, 32, 127)
-	}(int32(12)); err != nil {
+	}(int32(16)); err != nil {
 		t.Fatalf("LoadFont: %v", err)
 	}
+
+	// fmt.Println(">>", SampleString)
 
 	for !window.ShouldClose() {
 		glfw.PollEvents()
@@ -71,11 +74,11 @@ func Test(t *testing.T) {
 			continue
 		}
 
-		for i, size := 0, 10; i < size; i++ {
+		for i, size := 0, 3; i < size; i++ {
 			v := float32(i) / float32(size)
 			// Render the string.
 			gl.Color4f(v, 1-v, 0, 1)
-			if err := fonts.Printf(0, float32(i)*20, SampleString); err != nil {
+			if err := fonts.Printf(float32(i)*20, float32(50*i+10), SampleString); err != nil { // float32(i)*20
 				panic(err)
 			}
 		}
@@ -84,5 +87,53 @@ func Test(t *testing.T) {
 		window.SwapBuffers()
 
 		// break // one iteration
+	}
+}
+
+func TestBits(t *testing.T) {
+	tcs := []struct {
+		bits  [8]bool
+		value uint8
+	}{
+		{
+			bits:  [8]bool{true, true, true, true, true, true, true, true},
+			value: 0,
+		},
+		{
+			bits:  [8]bool{true, true, true, true, true, true, true, false},
+			value: 0b00000001,
+		},
+		{
+			bits:  [8]bool{},
+			value: 0b11111111,
+		},
+		{
+			bits:  [8]bool{false, true, true, true, true, true, true, true},
+			value: 0b10000000,
+		},
+		{
+			bits:  [8]bool{false, true, true, false, true, true, true, true},
+			value: 0b10010000,
+		},
+	}
+
+	Bit := func(bits [8]bool) uint8 {
+		var u uint8
+		for i := range bits {
+			h := (i) % 8
+			if !bits[i] {
+				u += 1 << (7 - h)
+			}
+		}
+		return u
+	}
+
+	for i := range tcs {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			act := Bit(tcs[i].bits)
+			if act != tcs[i].value {
+				t.Errorf("%d=%08b != %d=%08b", act, act, tcs[i].value, tcs[i].value)
+			}
+		})
 	}
 }
