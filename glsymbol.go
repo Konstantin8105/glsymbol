@@ -361,22 +361,6 @@ func LoadTruetype(r io.Reader, scale int32, low, high rune) (_ *Font, err error)
 
 		gi++
 	}
-
-	// Encode to `PNG` with `DefaultCompression` level
-	// then save to file
-	//	{
-	//		var f *os.File
-	//		f, err = os.Create(fmt.Sprintf("scale%d.png", scale))
-	//		if err != nil {
-	//			return
-	//		}
-	//		defer f.Close()
-	//		err = png.Encode(f, img)
-	//		if err != nil {
-	//			return
-	//		}
-	//	}
-
 	return loadFont(img, &fc)
 }
 
