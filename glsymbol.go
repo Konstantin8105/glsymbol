@@ -38,14 +38,16 @@ import (
 // These indicate which area of a given image contains the
 // glyph data and how the glyph should be spaced in a rendered string.
 type Glyph struct {
-	X      int // The x location of the glyph on a sprite sheet.
-	Y      int // The y location of the glyph on a sprite sheet.
-	Width  int // The width of the glyph on a sprite sheet.
-	Height int // The height of the glyph on a sprite sheet.
+	X      int32 // The x location of the glyph on a sprite sheet.
+	Y      int32 // The y location of the glyph on a sprite sheet.
+	Width  int32 // The width of the glyph on a sprite sheet.
+	Height int32 // The height of the glyph on a sprite sheet.
 
 	// Advance determines the distance to the next glyph.
 	// This is used to properly align non-monospaced fonts.
 	Advance int
+
+	letters []uint8
 }
 
 // A Charset represents a set of glyph descriptors for a font.
@@ -84,9 +86,6 @@ type Font struct {
 	Listbase       uint32      // Holds the first display list id.
 	MaxGlyphWidth  int         // Largest glyph width.
 	MaxGlyphHeight int         // Largest glyph height.
-
-	letters       []uint8
-	width, height int32
 }
 
 // loadFont loads the given font data. This does not deal with font scaling.
@@ -175,38 +174,53 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	// 		// gl.EndList()
 	// 	}
 
+	gl.ShadeModel(gl.FLAT)
+	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+	fontOffset = gl.GenLists(128)
+	for i, j := 0, uint32(65); i < 26; i, j = i+1, j+1 { // uint32('A')
+		get(img, f, &config.Glyphs[i])
+		// if len(config.Glyphs[i].letters)  != int(config.Glyphs[i].Width*config.Glyphs[i].Height) /8{
+		// 	panic(fmt.Sprintf("size: %v != %v",
+		// 		len(config.Glyphs[i].letters),
+		// 		int(config.Glyphs[i].Width*config.Glyphs[i].Height)/8,
+		// 	))
+		// }
+		gl.NewList(uint32(fontOffset+j), gl.COMPILE)
+		gl.Bitmap(
+			config.Glyphs[i].Width, config.Glyphs[i].Height,
+			0.0, 0.0,
+			0.0, 0.0,
+			(*uint8)(gl.Ptr(&config.Glyphs[i].letters[0])),
+		)
+		gl.EndList()
+	}
+
+	err = checkGLError()
+	return
+}
+
+func get(img *image.RGBA, f *Font, glyph *Glyph) {
+	fmt.Printf(	"%#v\n",*glyph)
+
 	// generate bitmap picture
 	var bits []bool
-	{
-		ma := img.Bounds().Max
-		mi := img.Bounds().Min
-		f.width = int32(ma.X - mi.X)
-		f.height = int32(ma.Y - mi.Y)
-		for x := 0; x < ma.X; x++ {
-			for y := 0; y < ma.Y; y++ {
-				c := img.At(x, y)
-				if r, _, _, _ := c.RGBA(); r < 2 {
-					bits = append(bits, true)
-					continue
-				}
-				bits = append(bits, false)
-			}
-		}
 
-		// glyph := config.Glyphs[0]
-		// f.width, f.height = int32(glyph.X), int32(glyph.Y)
-		// for x := int32(0); x < f.height; x++ {
-		// 	for y := int32(0); y < f.width; y++ {
-		// 		c := img.At(int(x), int(y))
-		// 		if r, _, _, _ := c.RGBA(); r < 2 {
-		// 			bits = append(bits, true)
-		// 			continue
-		// 		}
-		// 		bits = append(bits, false)
-		// 	}
-		// }
+	mi := img.Bounds().Min
+	ma := img.Bounds().Max
+	glyph.Width = int32(ma.X - mi.X)
+	glyph.Height = int32(ma.Y - mi.Y)
+	for y := ma.Y; 0 <= y; y-- {
+		for x := 0; x < ma.X; x++ {
+			c := img.At(x, y)
+			if r, _, _, _ := c.RGBA(); r < 2 {
+				bits = append(bits, true)
+				continue
+			}
+			bits = append(bits, false)
+		}
 	}
-	f.letters = nil
+
+	glyph.letters = nil
 	var u uint8
 	for i := range bits {
 		h := i % 8
@@ -214,33 +228,21 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 			u |= 1 << (7 - h)
 		}
 		if h == 7 || i == len(bits)-1 {
-			f.letters = append(f.letters, u)
+			glyph.letters = append(glyph.letters, u)
 			u = 0
 		}
 	}
-	// {
-	// 	f, err := os.Create("img.jpg")
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	defer f.Close()
-	// 	if err = jpeg.Encode(f, img, nil); err != nil {
-	// 		panic(err)
-	// 	}
-	// }
-	f.letters = append(f.letters, make([]uint8, 100000)...)
 
-	gl.ShadeModel(gl.FLAT)
-	gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
-	fontOffset = gl.GenLists(128)
-	for i, j := 0, uint32(65); i < 26; i, j = i+1, j+1 { // uint32('A')
-		gl.NewList(uint32(fontOffset+j), gl.COMPILE)
-		gl.Bitmap(f.width, f.height, 0.0, 0.0, 0.0, 0.0, (*uint8)(gl.Ptr(&f.letters[0])))
-		gl.EndList()
-	}
-
-	err = checkGLError()
-	return
+	//	{
+	//		f, err := os.Create("img.jpg")
+	//		if err != nil {
+	//			panic(err)
+	//		}
+	//		defer f.Close()
+	//		if err = jpeg.Encode(f, img, nil); err != nil {
+	//			panic(err)
+	//		}
+	//	}
 }
 
 // var once sync.Once
@@ -478,10 +480,10 @@ func LoadTruetype(r io.Reader, scale int32, low, high rune) (_ *Font, err error)
 		metric := ttf.HMetric(fixed.Int26_6(scale), index)
 
 		fc.Glyphs[gi].Advance = int(metric.AdvanceWidth)
-		fc.Glyphs[gi].X = int(gx)
-		fc.Glyphs[gi].Y = int(gy) - int(gh)/2 // shif up half a row so that we actually get the character in frame
-		fc.Glyphs[gi].Width = int(gw)
-		fc.Glyphs[gi].Height = int(gh)
+		fc.Glyphs[gi].X = int32(gx)
+		fc.Glyphs[gi].Y = int32(gy) - int32(gh)/2 // shif up half a row so that we actually get the character in frame
+		fc.Glyphs[gi].Width = int32(gw)
+		fc.Glyphs[gi].Height = int32(gh)
 		pt := freetype.Pt(int(gx), int(gy)+int(c.PointToFixed(float64(scale))>>8))
 		c.DrawString(string(ch), pt)
 
