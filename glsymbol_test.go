@@ -1,7 +1,6 @@
 package glsymbol
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 func Test(t *testing.T) {
 
 	low, high := 32, 127
+	fontSize := 16
 
 	var SampleString string
 	for b := low; b < high; b++ {
@@ -49,18 +49,20 @@ func Test(t *testing.T) {
 	gl.Disable(gl.LIGHTING)
 
 	file := "ProggyClean.ttf"
-	var fonts *Font
+	var fonts [8]*Font
 
-	// loadFont loads the specified font at the given scale.
-	if fonts, err = func(scale int32) (*Font, error) {
-		fd, err := os.Open(file)
-		if err != nil {
-			return nil, err
+	for id := range fonts {
+		// loadFont loads the specified font at the given scale.
+		if fonts[id], err = func(scale int32) (*Font, error) {
+			fd, err := os.Open(file)
+			if err != nil {
+				return nil, err
+			}
+			defer fd.Close()
+			return LoadTruetype(fd, scale, rune(byte(low)), rune(byte(high)))
+		}(int32(fontSize) + int32(id)*3); err != nil {
+			t.Fatalf("LoadFont: %v", err)
 		}
-		defer fd.Close()
-		return LoadTruetype(fd, scale, rune(byte(low)),rune(byte( high)))
-	}(int32(13)); err != nil {
-		t.Fatalf("LoadFont: %v", err)
 	}
 
 	for !window.ShouldClose() {
@@ -75,12 +77,18 @@ func Test(t *testing.T) {
 			continue
 		}
 
-		for i, size := 0, 3; i < size; i++ {
-			v := float32(i) / float32(size)
-			// Render the string.
-			gl.Color4f(v, 1-v, 0, 1)
-			if err := fonts.Printf(float32(i)*20, float32(50*i+10), SampleString); err != nil { // float32(i)*20
-				panic(err)
+		for id := range fonts {
+			for i, size := 0, 10; i < size; i++ {
+				v := float32(i) / float32(size)
+				// Render the string.
+				gl.Color4f(v, 1-v, 0, 1)
+				if err := fonts[id].Printf(
+					float32(id*120),
+					float32(fonts[id].MaxGlyphHeight)*float32(i),
+					SampleString,
+				); err != nil { // float32(i)*20
+					panic(err)
+				}
 			}
 		}
 
@@ -88,53 +96,5 @@ func Test(t *testing.T) {
 		window.SwapBuffers()
 
 		// break // one iteration
-	}
-}
-
-func TestBits(t *testing.T) {
-	tcs := []struct {
-		bits  [8]bool
-		value uint8
-	}{
-		{
-			bits:  [8]bool{true, true, true, true, true, true, true, true},
-			value: 0,
-		},
-		{
-			bits:  [8]bool{true, true, true, true, true, true, true, false},
-			value: 0b00000001,
-		},
-		{
-			bits:  [8]bool{},
-			value: 0b11111111,
-		},
-		{
-			bits:  [8]bool{false, true, true, true, true, true, true, true},
-			value: 0b10000000,
-		},
-		{
-			bits:  [8]bool{false, true, true, false, true, true, true, true},
-			value: 0b10010000,
-		},
-	}
-
-	Bit := func(bits [8]bool) uint8 {
-		var u uint8
-		for i := range bits {
-			h := (i) % 8
-			if !bits[i] {
-				u += 1 << (7 - h)
-			}
-		}
-		return u
-	}
-
-	for i := range tcs {
-		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
-			act := Bit(tcs[i].bits)
-			if act != tcs[i].value {
-				t.Errorf("%d=%08b != %d=%08b", act, act, tcs[i].value, tcs[i].value)
-			}
-		})
 	}
 }

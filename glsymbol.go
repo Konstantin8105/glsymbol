@@ -45,7 +45,7 @@ type Glyph struct {
 
 	// Advance determines the distance to the next glyph.
 	// This is used to properly align non-monospaced fonts.
-	Advance int
+	Advance int32
 
 	letters []uint8
 }
@@ -84,8 +84,8 @@ type Font struct {
 	Config         *FontConfig // Character set for this font.
 	Texture        uint32      // Holds the glyph texture id.
 	Listbase       uint32      // Holds the first display list id.
-	MaxGlyphWidth  int         // Largest glyph width.
-	MaxGlyphHeight int         // Largest glyph height.
+	MaxGlyphWidth  int32        // Largest glyph width.
+	MaxGlyphHeight int32        // Largest glyph height.
 
 	fontOffset uint32
 }
@@ -106,6 +106,14 @@ func loadFont(img *image.RGBA, config *FontConfig) (f *Font, err error) {
 	f.fontOffset = gl.GenLists(128)
 	for i, j := 0, uint32(config.Low); i < int(config.High - config.Low); i, j = i+1, j+1 { // uint32('A')
 		get(img, f, &config.Glyphs[i])
+
+		if f.MaxGlyphHeight < config.Glyphs[i].Height {
+		f.MaxGlyphHeight = config.Glyphs[i].Height
+		}
+		if f.MaxGlyphWidth < config.Glyphs[i].Width {
+		   f.MaxGlyphWidth = config.Glyphs[i].Width
+		}
+
 		gl.NewList(uint32(f.fontOffset+j), gl.COMPILE)
 		gl.Bitmap(
 			config.Glyphs[i].Width, config.Glyphs[i].Height,
@@ -126,12 +134,10 @@ func get(img *image.RGBA, f *Font, glyph *Glyph) {
 		var u uint8
 		for x := 0; x < int(glyph.Width); x++ {
 			c := img.At(x+int(glyph.X), int(y)+int(glyph.Y))
-
 			h := x % 8
-			if r, _, _, _ := c.RGBA(); !(r < 2) {
+			if r, _, _, _ := c.RGBA(); !(r < 150) {
 				u |= 1 << (7 - h)
 			}
-
 			if h == 7 || x == int(glyph.Width)-1 {
 				glyph.letters = append(glyph.letters, u)
 				u = 0
@@ -187,7 +193,7 @@ func (f *Font) Release() {
 //
 // Unknown runes will be counted as having the maximum glyph bounds as
 // defined by Font.GlyphBounds().
-func (f *Font) Metrics(text string) (int, int) {
+func (f *Font) Metrics(text string) (int32, int32) {
 	if len(text) == 0 {
 		return 0, 0
 	}
@@ -200,13 +206,13 @@ func (f *Font) Metrics(text string) (int, int) {
 //
 // Unknown runes will be counted as having the maximum glyph bounds as
 // defined by Font.GlyphBounds().
-func (f *Font) advanceSize(line string) int {
+func (f *Font) advanceSize(line string) int32 {
 	gw, _ := f.MaxGlyphWidth, f.MaxGlyphHeight
 	glyphs := f.Config.Glyphs
 	low := f.Config.Low
 	indices := []rune(line)
 
-	var size int
+	var size int32
 	for _, r := range indices {
 		r -= low
 
@@ -371,7 +377,7 @@ func LoadTruetype(r io.Reader, scale int32, low, high rune) (_ *Font, err error)
 		index := ttf.Index(ch)
 		metric := ttf.HMetric(fixed.Int26_6(scale), index)
 
-		fc.Glyphs[gi].Advance = int(metric.AdvanceWidth)
+		fc.Glyphs[gi].Advance = int32(metric.AdvanceWidth)
 		fc.Glyphs[gi].X = int32(gx)
 		fc.Glyphs[gi].Y = int32(gy) - int32(gh)/2 // shif up half a row so that we actually get the character in frame
 		fc.Glyphs[gi].Width = int32(gw)
@@ -410,6 +416,6 @@ func LoadTruetype(r io.Reader, scale int32, low, high rune) (_ *Font, err error)
 // GlyphBounds returns the largest width and height for any of the glyphs
 // in the font. This constitutes the largest possible bounding box
 // a single glyph will have.
-func (f *Font) GlyphBounds() (int, int) {
+func (f *Font) GlyphBounds() (int32, int32) {
 	return f.MaxGlyphWidth, f.MaxGlyphHeight
 }
