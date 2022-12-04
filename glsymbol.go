@@ -167,13 +167,17 @@ func (f *Font) Release() {
 func (f *Font) Printf(x, y float32, str string) error {
 	// gl.PushAttrib(gl.LIST_BIT | gl.CURRENT_BIT | gl.ENABLE_BIT | gl.TRANSFORM_BIT)
 	{
+		offset := int32(0)
 		for ib, b := range str {
 			i := b - f.Config.Low
-			gl.RasterPos2i(int32(x)+int32(f.Config.Glyphs[i].Width)*int32(ib), int32(y))
+			if 0 < ib {
+				offset += f.Config.Glyphs[int(str[ib-1])-int(f.Config.Low)].Width
+			}
+			gl.RasterPos2i(int32(x)+offset, int32(y))
 			gl.Bitmap(
 				f.Config.Glyphs[i].Width, f.Config.Glyphs[i].Height,
-				0.0, 2.0,
-				10.0, 0.0,
+				0.0, 0.0,
+				0.0, 0.0,
 				(*uint8)(gl.Ptr(&f.Config.Glyphs[i].BitmapData[0])),
 			)
 		}
