@@ -19,6 +19,7 @@ licenses for more information about the requirements.
 package glsymbol
 
 import (
+	_ "embed"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -26,6 +27,7 @@ import (
 	_ "image/png"
 	"io"
 	"io/ioutil"
+	"strings"
 	"unsafe"
 
 	"github.com/go-gl/gl/v2.1/gl"
@@ -33,6 +35,24 @@ import (
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/math/fixed"
 )
+
+//go:embed ProggyClean.ttf
+var defaultFont string
+
+// DefaultFont return default font
+func DefaultFont() (_ *Font, err error) {
+	var (
+		low   = rune(byte(32))
+		high  = rune(byte(127))
+		scale = int32(16) // font size
+	)
+	return LoadTruetype(
+		strings.NewReader(defaultFont),
+		scale,
+		rune(byte(low)),
+		rune(byte(high)),
+	)
+}
 
 // A Glyph describes metrics for a single font glyph.
 // These indicate which area of a given image contains the

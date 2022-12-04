@@ -9,6 +9,77 @@ import (
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
+func TestDefault(t *testing.T) {
+	SampleString := "Hello world"
+
+	var err error
+	if err = glfw.Init(); err != nil {
+		t.Fatalf("failed to initialize glfw: %v", err)
+	}
+	defer func() {
+		// 3D window is close
+		glfw.Terminate()
+	}()
+
+	glfw.WindowHint(glfw.Resizable, glfw.True)
+	glfw.WindowHint(glfw.ContextVersionMajor, 2)
+	glfw.WindowHint(glfw.ContextVersionMinor, 1)
+
+	var window *glfw.Window
+	window, err = glfw.CreateWindow(300, 300, "3D model", nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	window.MakeContextCurrent()
+
+	if err = gl.Init(); err != nil {
+		t.Fatal(err)
+	}
+
+	glfw.SwapInterval(1) // Enable vsync
+
+	gl.Disable(gl.DEPTH_TEST)
+	gl.Disable(gl.LIGHTING)
+
+	font, err := DefaultFont()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for !window.ShouldClose() {
+		glfw.PollEvents()
+		gl.Clear(gl.COLOR_BUFFER_BIT) // | gl.DEPTH_BUFFER_BIT)
+		gl.ClearColor(0, 0, 0, 0)
+
+		w, h := window.GetSize()
+		if w < 10 || h < 10 {
+			// TODO: fix resizing window
+			// PROBLEM with text rendering
+			continue
+		}
+
+		gl.PixelStorei(gl.UNPACK_ALIGNMENT, 1)
+		gl.ClearColor(0.0, 0.0, 0.0, 0.0)
+		gl.Viewport(0, 0, int32(w), int32(h))
+		gl.MatrixMode(gl.PROJECTION)
+		gl.LoadIdentity()
+		gl.Ortho(0, float64(w), 0, float64(h), -1.0, 1.0)
+		gl.MatrixMode(gl.MODELVIEW)
+
+		// Render the string.
+		gl.Color4f(1, 1, 0, 1)
+		if err := font.Printf(10, 20, SampleString); err != nil {
+			t.Fatal(err)
+		}
+
+		gl.Flush()
+		window.MakeContextCurrent()
+		window.SwapBuffers()
+
+		// break // one iteration
+	}
+}
+
 func Test(t *testing.T) {
 
 	low, high := 32, 127
