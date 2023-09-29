@@ -143,7 +143,7 @@ func Test(t *testing.T) {
 
 		{
 			// FPS
-			if diff := time.Now().Sub(start); 1 < diff.Seconds() {
+			if diff := time.Since(start); 1 < diff.Seconds() {
 				fmt.Printf("FPS(%d) ", fps)
 				fps = 0
 				start = time.Now()

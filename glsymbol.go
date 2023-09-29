@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"image"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	"github.com/go-gl/gl/v2.1/gl"
@@ -33,7 +32,7 @@ import (
 )
 
 //go:embed ProggyClean.ttf
-var defaultFont string
+var DefaultEmbeddedFont string
 
 // DefaultFont return default font
 func DefaultFont() (_ *Font, err error) {
@@ -43,7 +42,7 @@ func DefaultFont() (_ *Font, err error) {
 		scale = int32(16) // font size
 	)
 	return LoadTruetype(
-		strings.NewReader(defaultFont),
+		strings.NewReader(DefaultEmbeddedFont),
 		scale,
 		rune(byte(low)),
 		rune(byte(high)),
@@ -206,7 +205,7 @@ func Pow2(x uint32) uint32 {
 // The dir value determines the orientation of the text we render
 // with this font. This should be any of the predefined Direction constants.
 func LoadTruetype(r io.Reader, scale int32, low, high rune) (_ *Font, err error) {
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +267,11 @@ func LoadTruetype(r io.Reader, scale int32, low, high rune) (_ *Font, err error)
 		fc.Glyphs[gi].Width = int32(gw)
 		fc.Glyphs[gi].Height = int32(gh)
 		pt := freetype.Pt(int(gx), int(gy)+int(c.PointToFixed(float64(scale))>>8))
-		c.DrawString(string(ch), pt)
+		_, err = c.DrawString(string(ch), pt)
+		if err != nil {
+			err = fmt.Errorf("DrawString: %v", err)
+			return
+		}
 
 		if gi%16 == 0 {
 			gx = 0
