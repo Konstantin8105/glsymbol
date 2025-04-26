@@ -3,12 +3,17 @@ package glsymbol
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"testing"
 	"time"
 
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
+
+func init() {
+	runtime.LockOSThread()
+}
 
 func TestDefault(t *testing.T) {
 	SampleString := "Hello world"
@@ -68,13 +73,11 @@ func TestDefault(t *testing.T) {
 		// Render the string.
 		gl.Color4f(1, 1, 0, 1)
 		if err := font.Printf(10, 20, SampleString); err != nil {
-			t.Fatal(err)
+			t.Fatalf("cannot printf: %v", err)
 		}
 
 		window.MakeContextCurrent()
 		window.SwapBuffers()
-
-		// break // one iteration
 	}
 }
 
