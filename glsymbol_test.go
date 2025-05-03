@@ -36,6 +36,9 @@ func TestDefault(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		window.Destroy()
+	}()
 	window.MakeContextCurrent()
 
 	if err = gl.Init(); err != nil {
@@ -70,13 +73,19 @@ func TestDefault(t *testing.T) {
 		gl.Ortho(0, float64(w), 0, float64(h), -1.0, 1.0)
 		gl.MatrixMode(gl.MODELVIEW)
 
+		// gl.Color4f(1, 0.5, 0.5, 1)
+		// gl.Begin(gl.LINES)
+		// gl.Vertex2f(-1, -1)
+		// gl.Vertex2f(1, -1)
+		// gl.End()
+
 		// Render the string.
 		gl.Color4f(1, 1, 0, 1)
 		if err := font.Printf(10, 20, SampleString); err != nil {
 			t.Fatalf("cannot printf: %v", err)
 		}
 
-		window.MakeContextCurrent()
+		// window.MakeContextCurrent()
 		window.SwapBuffers()
 	}
 }
