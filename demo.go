@@ -5,13 +5,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
 	"time"
 	"unicode"
 
+	"github.com/Konstantin8105/compare"
 	"github.com/Konstantin8105/glsymbol"
 	"github.com/go-gl/gl/v2.1/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -22,12 +27,22 @@ func init() {
 }
 
 func main() {
-	testCase := flag.Uint("case", 0, "position of test case")
-
+	var (
+		testRun  = flag.Bool("test", true, "run tests")
+		testCase = flag.Int("case", 0, "position of test case")
+	)
 	flag.Parse()
+	if *testRun {
+		for pos := range 20 {
+			run(*testRun, pos)
+		}
+	} else {
+		run(*testRun, *testCase)
+	}
+}
 
+func run(testRun bool, testCase int) {
 	// common part
-
 	var err error
 	if err = glfw.Init(); err != nil {
 		panic(fmt.Errorf("failed to initialize glfw: %v", err))
@@ -42,7 +57,7 @@ func main() {
 	glfw.WindowHint(glfw.ContextVersionMinor, 1)
 
 	var window *glfw.Window
-	window, err = glfw.CreateWindow(300, 300, "3D model", nil, nil)
+	window, err = glfw.CreateWindow(800, 500, "3D model", nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +86,7 @@ func main() {
 	var loop func()
 	// prepare loops
 	var SampleString string
-	switch *testCase {
+	switch testCase {
 	case 0: // simple
 		SampleString = "Hello world"
 
@@ -242,11 +257,13 @@ func main() {
 			gl.Flush()
 		}
 	default:
-		panic(fmt.Sprintf("undefines case %d", *testCase))
+		log.Printf("undefined case: %d", testCase)
+		return
 	}
 
 	var fps uint64
 	start := time.Now()
+	counter := uint64(0)
 	for !window.ShouldClose() {
 		// clean
 		glfw.PollEvents()
@@ -266,5 +283,43 @@ func main() {
 		// upload buffer
 		window.MakeContextCurrent()
 		window.SwapBuffers()
+
+		if testRun && counter == 10 {
+			sizeX, sizeY := window.GetSize()
+			src := make([]uint8, 4*sizeX*sizeY)
+			gl.ReadPixels(0, 0, int32(sizeX), int32(sizeY),
+				gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(&src[0]))
+			// save to PNG
+			actual := image.NewNRGBA(image.Rect(0, 0, sizeX, sizeY))
+			// 2. Заполняем её пикселями из color, попутно переворачивая по Y
+			for y := 0; y < sizeY; y++ {
+				for x := 0; x < sizeX; x++ {
+					// Пиксель (x, y) из OpenGL (нижний левый угол) находится в массиве по адресу:
+					// (sizeY-1 - y) * sizeX * 4 + x * 4
+					srcIndex := (x + (sizeY-1-y)*sizeX) * 4
+					actual.Set(x, y, color.NRGBA{
+						R: src[srcIndex],
+						G: src[srcIndex+1],
+						B: src[srcIndex+2],
+						A: 255, // src[srcIndex+3],
+					})
+				}
+			}
+			// compare
+			var t checker
+			compare.TestPng(&t, filepath.Join("testdata", fmt.Sprintf("%02d.png", testCase)), actual)
+			break
+		}
+		counter++
 	}
+}
+
+type checker struct {
+	iserror bool
+	err     error
+}
+
+func (c *checker) Errorf(format string, args ...any) {
+	c.iserror = true
+	c.err = fmt.Errorf(format, args...)
 }
