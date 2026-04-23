@@ -28,7 +28,7 @@ func init() {
 
 func main() {
 	var (
-		testRun  = flag.Bool("test", true, "run tests")
+		testRun  = flag.Bool("test", false, "run tests")
 		testCase = flag.Int("case", 0, "position of test case")
 	)
 	flag.Parse()
@@ -308,6 +308,9 @@ func run(testRun bool, testCase int) {
 			// compare
 			var t checker
 			compare.TestPng(&t, filepath.Join("testdata", fmt.Sprintf("%02d.png", testCase)), actual)
+			if t.iserror {
+				panic(t.err)
+			}
 			break
 		}
 		counter++
