@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"sort"
 	"time"
 
 	"github.com/Konstantin8105/glsymbol"
@@ -56,13 +57,14 @@ func main() {
 
 	gl.Disable(gl.DEPTH_TEST)
 	gl.Disable(gl.LIGHTING)
+
 	// prepare font
 	font, err := glsymbol.DefaultFont()
 	if err != nil {
 		panic(err)
 	}
 	// rune positions
-	low, high := 32, 127
+	low, high := int32(32), int32(127)
 	// visualization loop
 	var loop func()
 	// prepare loops
@@ -136,7 +138,7 @@ func main() {
 					return nil, err
 				}
 				defer fd.Close()
-				return glsymbol.LoadTruetype(fd, scale, rune(byte(low)), rune(byte(high)))
+				return glsymbol.LoadTruetype(fd, scale, rune(low), rune(high))
 			}(int32(fontSize) + int32(id)*3); err != nil {
 				panic(fmt.Errorf("LoadFont: %v", err))
 			}
@@ -166,6 +168,75 @@ func main() {
 					panic(err)
 				}
 				y += float32(fonts[id].MaxGlyphHeight)
+			}
+			gl.Flush()
+		}
+
+	case 3: // multilines - russian+english runes
+		fontSize := int32(16)
+
+		list := []int32{'a', 'z', 'A', 'Z', 'а', 'я', 'А', 'Я', '0', '9', low, high}
+		sort.Slice(list, func(i, j int) bool {
+			return list[i] < list[j]
+		})
+		low = list[0]
+		high = list[len(list)-1]
+
+		var lines []string
+		{
+			var str string
+			for b := low; b < high; b++ {
+				str += string(rune(int32(b)))
+			}
+			rs := []rune(str)
+			spl := 30 // symbols per line
+			for i := range len(rs) {
+				start := i * spl
+				finish := (i + 1) * spl
+				if len(rs) < finish {
+					finish = len(rs)
+				}
+				str := string(rs[start:finish])
+				lines = append(lines, str)
+				if finish == len(rs) {
+					break
+				}
+			}
+		}
+
+		// loadFont loads the specified font at the given scale.
+		file := "FiraMono-Regular.ttf"
+		fd, err := os.Open(file)
+		if err != nil {
+			panic(err)
+		}
+		defer fd.Close()
+		font, err := glsymbol.LoadTruetype(fd, fontSize, rune(low), rune(high))
+		if err != nil {
+			panic(err)
+		}
+		defer fd.Close()
+		defer font.Release()
+
+		loop = func() {
+			w, h := window.GetSize()
+			if w < 10 || h < 10 {
+				// TODO: fix resizing window
+				// PROBLEM with text rendering
+				return
+			}
+			// prepare gl
+			gl.Viewport(0, 0, int32(w), int32(h))
+			gl.MatrixMode(gl.PROJECTION)
+			gl.LoadIdentity()
+			gl.Ortho(0, float64(w), 0, float64(h), -1.0, 1.0)
+			gl.MatrixMode(gl.MODELVIEW)
+			// Render the string.
+			gl.Color4f(1, 1, 0, 1)
+			for i := range lines {
+				if err := font.Printf(10, 20*float32(i+1), lines[i]); err != nil {
+					panic(fmt.Errorf("cannot printf: %v", err))
+				}
 			}
 			gl.Flush()
 		}

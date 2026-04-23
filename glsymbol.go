@@ -165,9 +165,14 @@ func (f *Font) Printf(x, y float32, str string) error {
 	{
 		offset := int32(0)
 		for ib, b := range str {
+			if b < f.Config.Low || f.Config.High < b {
+				// not implemented symbol
+				continue
+			}
 			i := b - f.Config.Low
 			if 0 < ib {
-				offset += f.Config.Glyphs[int(str[ib-1])-int(f.Config.Low)].Width
+				// offset += f.Config.Glyphs[int(str[ib-1])-int(f.Config.Low)].Width
+				offset += f.Config.Glyphs[int(b)-int(f.Config.Low)].Width
 			}
 			gl.RasterPos2i(int32(x)+offset, int32(y))
 			gl.Bitmap(
