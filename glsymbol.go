@@ -34,6 +34,9 @@ import (
 //go:embed ProggyClean.ttf
 var DefaultEmbeddedFont string
 
+//go:embed Greybeard-16px.ttf
+var DefaultRuEmbeddedFont string
+
 // DefaultFont return default font
 func DefaultFont() (_ *Font, err error) {
 	var (
@@ -166,8 +169,8 @@ func (f *Font) Printf(x, y float32, str string) error {
 		offset := int32(0)
 		for ib, b := range str {
 			if b < f.Config.Low || f.Config.High < b {
-				// not implemented symbol
-				continue
+				// not implemented symbol and use space
+				b = ' '
 			}
 			i := b - f.Config.Low
 			if 0 < ib {

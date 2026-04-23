@@ -8,7 +8,9 @@ import (
 	"os"
 	"runtime"
 	"sort"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Konstantin8105/glsymbol"
 	"github.com/go-gl/gl/v2.1/gl"
@@ -175,7 +177,7 @@ func main() {
 	case 3: // multilines - russian+english runes
 		fontSize := int32(16)
 
-		list := []int32{'a', 'z', 'A', 'Z', 'а', 'я', 'А', 'Я', '0', '9', low, high}
+		list := []int32{0, 8000, 'a', 'z', 'A', 'Z', 'а', 'я', 'А', 'Я', '0', '9', low, high}
 		sort.Slice(list, func(i, j int) bool {
 			return list[i] < list[j]
 		})
@@ -186,10 +188,13 @@ func main() {
 		{
 			var str string
 			for b := low; b < high; b++ {
-				str += string(rune(int32(b)))
+				r := rune(int32(b))
+				if (unicode.IsSymbol(r) || unicode.IsLetter(r)) && unicode.IsPrint(r) {
+					str += string(rune(int32(b)))
+				}
 			}
 			rs := []rune(str)
-			spl := 30 // symbols per line
+			spl := 120 // symbols per line
 			for i := range len(rs) {
 				start := i * spl
 				finish := (i + 1) * spl
@@ -205,17 +210,13 @@ func main() {
 		}
 
 		// loadFont loads the specified font at the given scale.
-		file := "FiraMono-Regular.ttf"
-		fd, err := os.Open(file)
+		font, err := glsymbol.LoadTruetype(
+			strings.NewReader(glsymbol.DefaultRuEmbeddedFont),
+			fontSize,
+			rune(low), rune(high))
 		if err != nil {
 			panic(err)
 		}
-		defer fd.Close()
-		font, err := glsymbol.LoadTruetype(fd, fontSize, rune(low), rune(high))
-		if err != nil {
-			panic(err)
-		}
-		defer fd.Close()
 		defer font.Release()
 
 		loop = func() {
