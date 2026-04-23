@@ -1,12 +1,10 @@
 module github.com/Konstantin8105/glsymbol
 
-go 1.23.0
-
-toolchain go1.24.0
+go 1.25.0
 
 require (
-	github.com/go-gl/gl v0.0.0-20231021071112-07e5d0ea2e71
-	golang.org/x/image v0.26.0
+	github.com/go-gl/gl v0.0.0-20260331235117-4566fea9a276
+	golang.org/x/image v0.39.0
 )
 
 require github.com/go-gl/glfw/v3.3/glfw v0.0.0-20221017161538-93cebf72946b
