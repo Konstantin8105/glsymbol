@@ -301,7 +301,7 @@ func run(testRun bool, testCase int) {
 						R: src[srcIndex],
 						G: src[srcIndex+1],
 						B: src[srcIndex+2],
-						A: 255, // src[srcIndex+3],
+						A: src[srcIndex+3],
 					})
 				}
 			}
